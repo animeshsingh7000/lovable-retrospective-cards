@@ -55,8 +55,9 @@ const Board = () => {
   const handleAddCard = async (swimlane: keyof Project['cards'], text: string) => {
     if (!project) return;
 
+    // Generate a proper UUID for the card
     const newCard = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       text,
       likes: 0,
       dislikes: 0,
@@ -164,27 +165,27 @@ const Board = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="h-screen flex flex-col px-4 py-6">
-        <div className="mb-6">
+      <div className="h-screen flex flex-col px-2 py-4">
+        <div className="mb-4">
           <Button
             variant="ghost"
             onClick={() => navigate('/')}
-            className="mb-4 hover:bg-gray-100"
+            className="mb-2 hover:bg-gray-100"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Projects
           </Button>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">{project.name}</h1>
-          <p className="text-lg text-gray-600">Team Retrospective Board</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-1">{project.name}</h1>
+          <p className="text-sm text-gray-600">Team Retrospective Board</p>
         </div>
 
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-3 min-h-0">
           {swimlanes.map((swimlane) => (
-            <div key={swimlane.key} className={`rounded-lg border-2 ${swimlane.color} p-4 flex flex-col`}>
-              <div className="flex items-center justify-between mb-4">
+            <div key={swimlane.key} className={`rounded-lg border-2 ${swimlane.color} p-3 flex flex-col h-full`}>
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{swimlane.icon}</span>
-                  <h2 className="text-xl font-semibold text-gray-900">{swimlane.title}</h2>
+                  <span className="text-lg">{swimlane.icon}</span>
+                  <h2 className="text-lg font-semibold text-gray-900">{swimlane.title}</h2>
                 </div>
                 <Button
                   size="sm"
@@ -195,7 +196,7 @@ const Board = () => {
                 </Button>
               </div>
 
-              <div className="flex-1">
+              <div className="flex-1 min-h-0">
                 <Swimlane
                   cards={project.cards[swimlane.key]}
                   onCardInteraction={(cardId, action) => handleCardInteraction(swimlane.key, cardId, action)}

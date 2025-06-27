@@ -47,13 +47,19 @@ export const getProjects = async (): Promise<Project[]> => {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (projectsError) throw projectsError;
+    if (projectsError) {
+      console.error('Error fetching projects:', projectsError);
+      throw projectsError;
+    }
 
     const { data: cards, error: cardsError } = await supabase
       .from('cards')
       .select('*');
 
-    if (cardsError) throw cardsError;
+    if (cardsError) {
+      console.error('Error fetching cards:', cardsError);
+      throw cardsError;
+    }
 
     return projects.map(project => 
       transformDbProjectToProject(project, cards?.filter(card => card.project_id === project.id) || [])
@@ -72,14 +78,20 @@ export const getProject = async (projectId: string): Promise<Project | null> => 
       .eq('id', projectId)
       .single();
 
-    if (projectError) throw projectError;
+    if (projectError) {
+      console.error('Error fetching project:', projectError);
+      throw projectError;
+    }
 
     const { data: cards, error: cardsError } = await supabase
       .from('cards')
       .select('*')
       .eq('project_id', projectId);
 
-    if (cardsError) throw cardsError;
+    if (cardsError) {
+      console.error('Error fetching cards:', cardsError);
+      throw cardsError;
+    }
 
     return transformDbProjectToProject(project, cards || []);
   } catch (error) {
@@ -96,7 +108,10 @@ export const createProject = async (name: string): Promise<Project> => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating project:', error);
+      throw error;
+    }
 
     return transformDbProjectToProject(project, []);
   } catch (error) {
@@ -113,7 +128,10 @@ export const updateProject = async (project: Project): Promise<void> => {
       .update({ name: project.name })
       .eq('id', project.id);
 
-    if (projectError) throw projectError;
+    if (projectError) {
+      console.error('Error updating project:', projectError);
+      throw projectError;
+    }
 
     // Get existing cards to determine what needs to be updated/inserted/deleted
     const { data: existingCards, error: fetchError } = await supabase
@@ -121,7 +139,10 @@ export const updateProject = async (project: Project): Promise<void> => {
       .select('*')
       .eq('project_id', project.id);
 
-    if (fetchError) throw fetchError;
+    if (fetchError) {
+      console.error('Error fetching existing cards:', fetchError);
+      throw fetchError;
+    }
 
     const existingCardIds = new Set(existingCards?.map(card => card.id) || []);
     const newCardIds = new Set();
@@ -148,7 +169,10 @@ export const updateProject = async (project: Project): Promise<void> => {
           })
           .eq('id', card.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating card:', error);
+          throw error;
+        }
       } else {
         // Insert new card
         const { error } = await supabase
@@ -163,7 +187,10 @@ export const updateProject = async (project: Project): Promise<void> => {
             created_at: card.createdAt,
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error inserting card:', error);
+          throw error;
+        }
       }
     }
 
@@ -175,7 +202,10 @@ export const updateProject = async (project: Project): Promise<void> => {
         .delete()
         .eq('id', card.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting card:', error);
+        throw error;
+      }
     }
 
   } catch (error) {
@@ -192,7 +222,10 @@ export const deleteProject = async (projectId: string): Promise<void> => {
       .delete()
       .eq('id', projectId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error deleting project:', error);
+      throw error;
+    }
   } catch (error) {
     console.error('Error deleting project:', error);
     throw error;
