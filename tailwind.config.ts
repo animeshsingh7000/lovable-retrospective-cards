@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -18,6 +19,9 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter', 'Helvetica Neue', 'system-ui', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -61,7 +65,12 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Custom RDSolutions colors
+				'rd-primary': 'hsl(var(--rd-primary))',
+				'rd-secondary-light': 'hsl(var(--rd-secondary-light))',
+				'rd-secondary-dark': 'hsl(var(--rd-secondary-dark))',
+				'rd-accent': 'hsl(var(--rd-accent))',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Header } from '@/components/Header';
 import { Project } from '@/types/project';
 import { getProject, updateProject } from '@/utils/supabaseStorage';
 import { Swimlane } from '@/components/Swimlane';
@@ -126,10 +127,13 @@ const Board = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading project...</p>
+      <div className="min-h-screen bg-gradient-to-br from-rd-secondary-light to-white">
+        <Header title="Retro Board App by Animesh Singh" />
+        <div className="flex items-center justify-center py-32">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rd-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading project...</p>
+          </div>
         </div>
       </div>
     );
@@ -144,6 +148,7 @@ const Board = () => {
       key: 'whatWentWell' as const,
       title: 'What Went Well',
       color: 'bg-green-50 border-green-200',
+      headerColor: 'bg-green-100',
       buttonColor: 'bg-green-600 hover:bg-green-700',
       icon: '😊',
     },
@@ -151,6 +156,7 @@ const Board = () => {
       key: 'toImprove' as const,
       title: 'To Improve',
       color: 'bg-orange-50 border-orange-200',
+      headerColor: 'bg-orange-100',
       buttonColor: 'bg-orange-600 hover:bg-orange-700',
       icon: '🔧',
     },
@@ -158,45 +164,52 @@ const Board = () => {
       key: 'actionItems' as const,
       title: 'Action Items',
       color: 'bg-blue-50 border-blue-200',
-      buttonColor: 'bg-blue-600 hover:bg-blue-700',
+      headerColor: 'bg-blue-100',
+      buttonColor: 'bg-rd-primary hover:bg-rd-primary/90',
       icon: '🎯',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="h-screen flex flex-col px-2 py-4">
-        <div className="mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-rd-secondary-light to-white">
+      <Header title="Retro Board App by Animesh Singh" />
+      
+      <div className="h-[calc(100vh-80px)] flex flex-col px-6 py-6">
+        <div className="mb-6">
           <Button
             variant="ghost"
             onClick={() => navigate('/')}
-            className="mb-2 hover:bg-gray-100"
+            className="mb-4 hover:bg-white/80 text-gray-700 hover:text-rd-primary rounded-lg px-4 py-2"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Projects
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">{project.name}</h1>
-          <p className="text-sm text-gray-600">Team Retrospective Board</p>
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+            <h1 className="text-3xl font-semibold text-rd-secondary-dark mb-2">{project.name}</h1>
+            <p className="text-gray-600">Team Retrospective Board</p>
+          </div>
         </div>
 
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-3 min-h-0">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
           {swimlanes.map((swimlane) => (
-            <div key={swimlane.key} className={`rounded-lg border-2 ${swimlane.color} p-3 flex flex-col h-full`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{swimlane.icon}</span>
-                  <h2 className="text-lg font-semibold text-gray-900">{swimlane.title}</h2>
+            <div key={swimlane.key} className={`rounded-xl border-2 ${swimlane.color} flex flex-col h-full shadow-sm`}>
+              <div className={`${swimlane.headerColor} rounded-t-xl p-4 border-b border-gray-200`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{swimlane.icon}</span>
+                    <h2 className="text-lg font-semibold text-gray-900">{swimlane.title}</h2>
+                  </div>
+                  <Button
+                    size="sm"
+                    className={`${swimlane.buttonColor} text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200`}
+                    onClick={() => setActiveDialog(swimlane.key)}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  className={swimlane.buttonColor}
-                  onClick={() => setActiveDialog(swimlane.key)}
-                >
-                  <Plus className="w-4 h-4" />
-                </Button>
               </div>
 
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 min-h-0 p-4">
                 <Swimlane
                   cards={project.cards[swimlane.key]}
                   onCardInteraction={(cardId, action) => handleCardInteraction(swimlane.key, cardId, action)}
