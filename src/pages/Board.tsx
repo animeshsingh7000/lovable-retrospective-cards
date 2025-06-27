@@ -4,28 +4,55 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Project } from '@/types/project';
-import { getProject, updateProject } from '@/utils/storage';
+import { getProject, updateProject } from '@/utils/supabaseStorage';
 import { Swimlane } from '@/components/Swimlane';
 import { AddCardDialog } from '@/components/AddCardDialog';
+import { useToast } from '@/hooks/use-toast';
 
 const Board = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [activeDialog, setActiveDialog] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (projectId) {
-      const foundProject = getProject(projectId);
+      loadProject();
+    }
+  }, [projectId]);
+
+  const loadProject = async () => {
+    if (!projectId) return;
+    
+    try {
+      setIsLoading(true);
+      const foundProject = await getProject(projectId);
       if (foundProject) {
         setProject(foundProject);
       } else {
+        toast({
+          title: "Error",
+          description: "Project not found.",
+          variant: "destructive",
+        });
         navigate('/');
       }
+    } catch (error) {
+      console.error('Error loading project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load project. Please try again.",
+        variant: "destructive",
+      });
+      navigate('/');
+    } finally {
+      setIsLoading(false);
     }
-  }, [projectId, navigate]);
+  };
 
-  const handleAddCard = (swimlane: keyof Project['cards'], text: string) => {
+  const handleAddCard = async (swimlane: keyof Project['cards'], text: string) => {
     if (!project) return;
 
     const newCard = {
@@ -44,12 +71,25 @@ const Board = () => {
       },
     };
 
-    updateProject(updatedProject);
-    setProject(updatedProject);
-    setActiveDialog(null);
+    try {
+      await updateProject(updatedProject);
+      setProject(updatedProject);
+      setActiveDialog(null);
+      toast({
+        title: "Success",
+        description: "Card added successfully!",
+      });
+    } catch (error) {
+      console.error('Error adding card:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add card. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleCardInteraction = (swimlane: keyof Project['cards'], cardId: string, action: 'like' | 'dislike') => {
+  const handleCardInteraction = async (swimlane: keyof Project['cards'], cardId: string, action: 'like' | 'dislike') => {
     if (!project) return;
 
     const updatedCards = project.cards[swimlane].map(card => {
@@ -70,11 +110,20 @@ const Board = () => {
       },
     };
 
-    updateProject(updatedProject);
-    setProject(updatedProject);
+    try {
+      await updateProject(updatedProject);
+      setProject(updatedProject);
+    } catch (error) {
+      console.error('Error updating card:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update card. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  if (!project) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -83,6 +132,10 @@ const Board = () => {
         </div>
       </div>
     );
+  }
+
+  if (!project) {
+    return null;
   }
 
   const swimlanes = [
@@ -110,9 +163,9 @@ const Board = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      <div className="h-screen flex flex-col px-4 py-6">
+        <div className="mb-6">
           <Button
             variant="ghost"
             onClick={() => navigate('/')}
@@ -125,9 +178,9 @@ const Board = () => {
           <p className="text-lg text-gray-600">Team Retrospective Board</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
           {swimlanes.map((swimlane) => (
-            <div key={swimlane.key} className={`rounded-lg border-2 ${swimlane.color} p-4`}>
+            <div key={swimlane.key} className={`rounded-lg border-2 ${swimlane.color} p-4 flex flex-col`}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">{swimlane.icon}</span>
@@ -142,10 +195,12 @@ const Board = () => {
                 </Button>
               </div>
 
-              <Swimlane
-                cards={project.cards[swimlane.key]}
-                onCardInteraction={(cardId, action) => handleCardInteraction(swimlane.key, cardId, action)}
-              />
+              <div className="flex-1">
+                <Swimlane
+                  cards={project.cards[swimlane.key]}
+                  onCardInteraction={(cardId, action) => handleCardInteraction(swimlane.key, cardId, action)}
+                />
+              </div>
 
               <AddCardDialog
                 isOpen={activeDialog === swimlane.key}
