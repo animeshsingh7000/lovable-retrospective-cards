@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { Project, Card } from '@/types/project';
@@ -120,6 +119,61 @@ export const createProject = async (name: string): Promise<Project> => {
   }
 };
 
+// NEW: Individual card operations to prevent race conditions
+export const addCard = async (projectId: string, swimlane: string, text: string): Promise<Card> => {
+  try {
+    const cardId = crypto.randomUUID();
+    const { data: card, error } = await supabase
+      .from('cards')
+      .insert({
+        id: cardId,
+        project_id: projectId,
+        text,
+        likes: 0,
+        dislikes: 0,
+        swimlane,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding card:', error);
+      throw error;
+    }
+
+    return {
+      id: card.id,
+      text: card.text,
+      likes: card.likes,
+      dislikes: card.dislikes,
+      createdAt: card.created_at,
+    };
+  } catch (error) {
+    console.error('Error adding card:', error);
+    throw error;
+  }
+};
+
+// NEW: Update individual card likes/dislikes
+export const updateCardInteraction = async (cardId: string, action: 'like' | 'dislike'): Promise<void> => {
+  try {
+    const { error } = await supabase.rpc(
+      action === 'like' ? 'increment_card_likes' : 'increment_card_dislikes',
+      { card_id: cardId }
+    );
+
+    if (error) {
+      console.error(`Error updating card ${action}:`, error);
+      throw error;
+    }
+  } catch (error) {
+    console.error(`Error updating card ${action}:`, error);
+    throw error;
+  }
+};
+
+// Keep the old updateProject for backward compatibility, but it's now less used
 export const updateProject = async (project: Project): Promise<void> => {
   try {
     // Update project name

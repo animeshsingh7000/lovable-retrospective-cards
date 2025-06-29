@@ -1,11 +1,11 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { Project } from '@/types/project';
-import { getProject, updateProject } from '@/utils/supabaseStorage';
+import { getProject, addCard, updateCardInteraction } from '@/utils/supabaseStorage';
+import { supabase } from '@/integrations/supabase/client';
 import { Swimlane } from '@/components/Swimlane';
 import { AddCardDialog } from '@/components/AddCardDialog';
 import { useToast } from '@/hooks/use-toast';
@@ -21,7 +21,13 @@ const Board = () => {
   useEffect(() => {
     if (projectId) {
       loadProject();
+      setupRealTimeSubscription();
     }
+
+    return () => {
+      // Cleanup subscriptions when component unmounts
+      supabase.removeAllChannels();
+    };
   }, [projectId]);
 
   const loadProject = async () => {
@@ -53,28 +59,48 @@ const Board = () => {
     }
   };
 
+  const setupRealTimeSubscription = () => {
+    if (!projectId) return;
+
+    const channel = supabase
+      .channel('board-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'cards',
+          filter: `project_id=eq.${projectId}`,
+        },
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          // Reload project data when cards change
+          loadProject();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
   const handleAddCard = async (swimlane: keyof Project['cards'], text: string) => {
-    if (!project) return;
-
-    // Generate a proper UUID for the card
-    const newCard = {
-      id: crypto.randomUUID(),
-      text,
-      likes: 0,
-      dislikes: 0,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedProject = {
-      ...project,
-      cards: {
-        ...project.cards,
-        [swimlane]: [...project.cards[swimlane], newCard],
-      },
-    };
+    if (!project || !projectId) return;
 
     try {
-      await updateProject(updatedProject);
+      // Use the new addCard function for individual operations
+      const newCard = await addCard(projectId, swimlane, text);
+      
+      // Optimistically update local state while real-time will sync
+      const updatedProject = {
+        ...project,
+        cards: {
+          ...project.cards,
+          [swimlane]: [...project.cards[swimlane], newCard],
+        },
+      };
+
       setProject(updatedProject);
       setActiveDialog(null);
       toast({
@@ -88,32 +114,37 @@ const Board = () => {
         description: "Failed to add card. Please try again.",
         variant: "destructive",
       });
+      // Reload to get the current state
+      loadProject();
     }
   };
 
   const handleCardInteraction = async (swimlane: keyof Project['cards'], cardId: string, action: 'like' | 'dislike') => {
     if (!project) return;
 
-    const updatedCards = project.cards[swimlane].map(card => {
-      if (card.id === cardId) {
-        return {
-          ...card,
-          [action === 'like' ? 'likes' : 'dislikes']: card[action === 'like' ? 'likes' : 'dislikes'] + 1,
-        };
-      }
-      return card;
-    });
-
-    const updatedProject = {
-      ...project,
-      cards: {
-        ...project.cards,
-        [swimlane]: updatedCards,
-      },
-    };
-
     try {
-      await updateProject(updatedProject);
+      // Use the new updateCardInteraction function
+      await updateCardInteraction(cardId, action);
+
+      // Optimistically update local state
+      const updatedCards = project.cards[swimlane].map(card => {
+        if (card.id === cardId) {
+          return {
+            ...card,
+            [action === 'like' ? 'likes' : 'dislikes']: card[action === 'like' ? 'likes' : 'dislikes'] + 1,
+          };
+        }
+        return card;
+      });
+
+      const updatedProject = {
+        ...project,
+        cards: {
+          ...project.cards,
+          [swimlane]: updatedCards,
+        },
+      };
+
       setProject(updatedProject);
     } catch (error) {
       console.error('Error updating card:', error);
@@ -122,6 +153,8 @@ const Board = () => {
         description: "Failed to update card. Please try again.",
         variant: "destructive",
       });
+      // Reload to get the current state
+      loadProject();
     }
   };
 
