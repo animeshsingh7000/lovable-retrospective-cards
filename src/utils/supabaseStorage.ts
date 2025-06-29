@@ -155,17 +155,35 @@ export const addCard = async (projectId: string, swimlane: string, text: string)
   }
 };
 
-// NEW: Update individual card likes/dislikes
+// NEW: Update individual card likes/dislikes using direct SQL update for now
 export const updateCardInteraction = async (cardId: string, action: 'like' | 'dislike'): Promise<void> => {
   try {
-    const { error } = await supabase.rpc(
-      action === 'like' ? 'increment_card_likes' : 'increment_card_dislikes',
-      { card_id: cardId }
-    );
+    // For now, use direct SQL updates instead of RPC functions
+    // This will work until we create the database functions
+    const columnToUpdate = action === 'like' ? 'likes' : 'dislikes';
+    
+    // First get the current value
+    const { data: currentCard, error: fetchError } = await supabase
+      .from('cards')
+      .select(columnToUpdate)
+      .eq('id', cardId)
+      .single();
 
-    if (error) {
-      console.error(`Error updating card ${action}:`, error);
-      throw error;
+    if (fetchError) {
+      console.error(`Error fetching card for ${action}:`, fetchError);
+      throw fetchError;
+    }
+
+    // Then increment it
+    const currentValue = currentCard[columnToUpdate] || 0;
+    const { error: updateError } = await supabase
+      .from('cards')
+      .update({ [columnToUpdate]: currentValue + 1 })
+      .eq('id', cardId);
+
+    if (updateError) {
+      console.error(`Error updating card ${action}:`, updateError);
+      throw updateError;
     }
   } catch (error) {
     console.error(`Error updating card ${action}:`, error);
