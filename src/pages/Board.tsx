@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/Header';
 import { Project } from '@/types/project';
@@ -8,6 +8,7 @@ import { getProject, addCard, updateCardInteraction } from '@/utils/supabaseStor
 import { supabase } from '@/integrations/supabase/client';
 import { Swimlane } from '@/components/Swimlane';
 import { AddCardDialog } from '@/components/AddCardDialog';
+import { ExportDialog } from '@/components/ExportDialog';
 import { useToast } from '@/hooks/use-toast';
 
 const Board = () => {
@@ -15,6 +16,7 @@ const Board = () => {
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [activeDialog, setActiveDialog] = useState<string | null>(null);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -218,12 +220,23 @@ const Board = () => {
             Back to Projects
           </Button>
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <h1 className="text-3xl font-semibold text-rd-secondary-dark mb-2">{project.name}</h1>
-            <p className="text-gray-600">Team Retrospective Board</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-semibold text-rd-secondary-dark mb-2">{project.name}</h1>
+                <p className="text-gray-600">Team Retrospective Board</p>
+              </div>
+              <Button
+                onClick={() => setIsExportDialogOpen(true)}
+                className="bg-rd-primary hover:bg-rd-primary/90 text-white rounded-lg px-4 py-2 flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
+        <div id="board-content" className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
           {swimlanes.map((swimlane) => (
             <div key={swimlane.key} className={`rounded-xl border-2 ${swimlane.color} flex flex-col h-full shadow-sm`}>
               <div className={`${swimlane.headerColor} rounded-t-xl p-4 border-b border-gray-200`}>
@@ -258,6 +271,14 @@ const Board = () => {
             </div>
           ))}
         </div>
+
+        {/* Export Dialog */}
+        <ExportDialog
+          isOpen={isExportDialogOpen}
+          onClose={() => setIsExportDialogOpen(false)}
+          project={project}
+          boardElementId="board-content"
+        />
       </div>
     </div>
   );
