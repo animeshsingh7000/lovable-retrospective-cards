@@ -259,6 +259,7 @@ const Board = () => {
                 <Swimlane
                   cards={project.cards[swimlane.key]}
                   onCardInteraction={(cardId, action) => handleCardInteraction(swimlane.key, cardId, action)}
+                  onAddCard={() => setActiveDialog(swimlane.key)}
                 />
               </div>
 
