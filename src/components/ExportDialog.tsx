@@ -96,7 +96,7 @@ export const ExportDialog = ({ isOpen, onClose, project, boardElementId = 'board
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Download className="w-5 h-5 text-rd-primary" />
@@ -118,19 +118,19 @@ export const ExportDialog = ({ isOpen, onClose, project, boardElementId = 'board
                 variant="ghost"
                 onClick={() => handleExport(option.format)}
                 disabled={isExporting}
-                className={`w-full justify-start h-auto p-4 ${option.bgColor} border border-gray-200 hover:border-gray-300`}
+                className={`w-full justify-start h-auto p-4 ${option.bgColor} border border-gray-200 hover:border-gray-300 min-h-[80px]`}
               >
-                <div className="flex items-center gap-4 w-full">
-                  <div className={`p-2 rounded-lg bg-white ${option.color}`}>
+                <div className="flex items-start gap-4 w-full">
+                  <div className={`p-2 rounded-lg bg-white ${option.color} flex-shrink-0`}>
                     {isCurrentlyExporting ? (
                       <div className="w-5 h-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                     ) : (
                       <Icon className="w-5 h-5" />
                     )}
                   </div>
-                  <div className="text-left flex-1">
-                    <h3 className="font-semibold text-gray-900">{option.title}</h3>
-                    <p className="text-sm text-gray-600">{option.description}</p>
+                  <div className="text-left flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 mb-1">{option.title}</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">{option.description}</p>
                   </div>
                 </div>
               </Button>

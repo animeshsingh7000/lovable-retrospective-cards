@@ -23,7 +23,7 @@ export const exportToPDF = async (project: Project): Promise<void> => {
   yPosition += 20;
 
   // Helper function to add section
-  const addSection = (title: string, cards: any[], color: string) => {
+  const addSection = (title: string, cards: any[]) => {
     // Check if we need a new page
     if (yPosition > pdf.internal.pageSize.height - 60) {
       pdf.addPage();
@@ -57,18 +57,18 @@ export const exportToPDF = async (project: Project): Promise<void> => {
         pdf.text(splitText, margin + 10, yPosition);
         yPosition += splitText.length * 5;
 
-        // Likes and dislikes
-        pdf.text(`👍 ${card.likes} | 👎 ${card.dislikes} | ${new Date(card.createdAt).toLocaleDateString()}`, margin + 10, yPosition);
+        // Likes and dislikes (using text instead of emojis)
+        pdf.text(`Likes: ${card.likes} | Dislikes: ${card.dislikes} | ${new Date(card.createdAt).toLocaleDateString()}`, margin + 10, yPosition);
         yPosition += 10;
       });
     }
     yPosition += 10;
   };
 
-  // Add sections
-  addSection('What Went Well 😊', project.cards.whatWentWell, '#10B981');
-  addSection('To Improve 🔧', project.cards.toImprove, '#F59E0B');
-  addSection('Action Items 🎯', project.cards.actionItems, '#3B82F6');
+  // Add sections (without emojis)
+  addSection('What Went Well', project.cards.whatWentWell);
+  addSection('To Improve', project.cards.toImprove);
+  addSection('Action Items', project.cards.actionItems);
 
   // Summary
   if (yPosition > pdf.internal.pageSize.height - 80) {
@@ -104,24 +104,27 @@ export const exportToCSV = (project: Project): void => {
 
   // Add cards from each section
   project.cards.whatWentWell.forEach(card => {
-    csvData.push(['What Went Well', card.text, card.likes, card.dislikes, new Date(card.createdAt).toLocaleDateString()]);
+    csvData.push(['What Went Well', card.text.replace(/[^\x20-\x7E]/g, ''), card.likes, card.dislikes, new Date(card.createdAt).toLocaleDateString()]);
   });
 
   project.cards.toImprove.forEach(card => {
-    csvData.push(['To Improve', card.text, card.likes, card.dislikes, new Date(card.createdAt).toLocaleDateString()]);
+    csvData.push(['To Improve', card.text.replace(/[^\x20-\x7E]/g, ''), card.likes, card.dislikes, new Date(card.createdAt).toLocaleDateString()]);
   });
 
   project.cards.actionItems.forEach(card => {
-    csvData.push(['Action Items', card.text, card.likes, card.dislikes, new Date(card.createdAt).toLocaleDateString()]);
+    csvData.push(['Action Items', card.text.replace(/[^\x20-\x7E]/g, ''), card.likes, card.dislikes, new Date(card.createdAt).toLocaleDateString()]);
   });
 
-  // Convert to CSV string
+  // Convert to CSV string with proper encoding
   const csvContent = csvData.map(row => 
-    row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
+    row.map(field => `"${String(field).replace(/"/g, '""').replace(/[^\x20-\x7E]/g, '')}"`).join(',')
   ).join('\n');
 
+  // Add BOM for UTF-8 to ensure proper encoding
+  const csvWithBOM = '\uFEFF' + csvContent;
+
   // Download
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = `${project.name.replace(/[^a-z0-9]/gi, '_')}_retrospective.csv`;
@@ -135,12 +138,28 @@ export const exportToImage = async (elementId: string, filename: string): Promis
   }
 
   try {
+    // Get the element's full scroll dimensions
+    const originalHeight = element.style.height;
+    const originalOverflow = element.style.overflow;
+    
+    // Temporarily expand the element to capture all content
+    element.style.height = `${element.scrollHeight}px`;
+    element.style.overflow = 'visible';
+
     const canvas = await html2canvas(element, {
       backgroundColor: '#ffffff',
-      scale: 2,
+      scale: 1,
       useCORS: true,
       logging: false,
+      height: element.scrollHeight,
+      width: element.scrollWidth,
+      scrollX: 0,
+      scrollY: 0,
     });
+
+    // Restore original styles
+    element.style.height = originalHeight;
+    element.style.overflow = originalOverflow;
 
     // Convert to blob and download
     canvas.toBlob((blob) => {
